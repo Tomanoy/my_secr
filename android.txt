@@ -1,0 +1,3 @@
+title=MY_SECR
+author=Tomanoy
+orientation=portrait
