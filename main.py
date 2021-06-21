@@ -14,9 +14,10 @@ import my_secr
 import struct
 
 font_size = 12
+defaultFont = 'msyh'
 
 BACKGROUND_COLOR_NOTHING = [0.0, 0.0, 0.0, 1]
-BACKGROUND_COLOR_FOLDER  = [0.4, 0.2, 0.2, 1]
+BACKGROUND_COLOR_FOLDER  = [0.6, 0.3, 0.3, 1]
 BACKGROUND_COLOR_FILE    = [0.2, 0.2, 0.2, 1]
 
 TYPE_NOTHING = 0
@@ -63,24 +64,29 @@ class InfoLabel(Button):
         self.background_color = BACKGROUND_COLOR_FILE
         self.type = TYPE_FILE
         self.fileIndex = fileIndex
-        self.text = (infoString)[:40]
+        self.text = infoString[:60]
         
     def SetFolder(self, fileIndex, infoString):
         self.background_color = BACKGROUND_COLOR_FOLDER
         self.type = TYPE_FOLDER
         self.fileIndex = fileIndex
-        self.text = (infoString)[:40]
+        self.text = infoString[:60]
         
     
 class AppWindow(GridLayout):
     def __init__(self, **kwargs):
         super(AppWindow, self).__init__(**kwargs)
         self.cols = 1
-        self.titelLabel = Label(text='Titel')
+        self.titelLabel = Label(text='Titel', font_name=defaultFont)
 
+
+        #text_size: None,self.height[1] #  Set the text wrap Box height
+        #size_hint_x:None
+        #width: self.texture_size[0]
+        #print(self.titelLabel.size_hint_x)
         self.size_width = Config.get('graphics', 'width')
         self.size_height = Config.get('graphics', 'height')
-                
+        
         self.add_widget(self.titelLabel)
         self.listLines = 16
         self.listLabels = []
@@ -94,7 +100,7 @@ class AppWindow(GridLayout):
             bb += struct.pack('=B', (99 % 256))
             
         for i in range(self.listLines):
-            tempLabel = InfoLabel(text='File Name')
+            tempLabel = InfoLabel(text='File Name', font_name=defaultFont)
             tempLabel.Init(i, self)
             self.listLabels.append(tempLabel)
             self.add_widget(tempLabel)
@@ -122,26 +128,25 @@ class AppWindow(GridLayout):
         self.add_widget(self.pageButtonBar)
 
         self.passwordBar = GridLayout(rows = 1)
-        self.passwordLabel = Label(text='Password:', size_hint_max_x = 100)
+        self.passwordLabel = Label(text='Password:', size_hint_max_x = 70, font_name=defaultFont)
         self.password = TextInput(multiline=False)
         self.passwordBar.add_widget(self.passwordLabel)
         self.passwordBar.add_widget(self.password)
         self.add_widget(self.passwordBar)
         
         #print(dir(self.password), self.password.width)
-         
-
-        self.checkBar = GridLayout(rows = 1) 
+        
         self.label_UnlockCheck = Label(text='Unlock')
         self.check_EncryptFolder = CheckBox(color=[1,1,1,1])
         self.check_EncryptFolder.bind(active=self.CheckboxActive)
-        
+        self.checkBar = GridLayout(rows = 1)
         self.checkBar.add_widget(self.label_UnlockCheck)
         self.checkBar.add_widget(self.check_EncryptFolder)
-
         self.add_widget(self.checkBar)
         
-        self.buttonBar = GridLayout(rows = 1)     
+        self.buttonBar = GridLayout(rows = 1)      
+
+
         self.button_EncryptFolder = Button(text="Encrypt Folder",
                                          font_size="%dsp" % font_size,
                                          background_color=BUTTON_COLOR_DISABLE,
@@ -173,7 +178,6 @@ class AppWindow(GridLayout):
                                          size_hint=(.3, .3),
                                          pos=(500, 500)) 
         self.button_DecryptFile.bind(on_press=self.DecryptFile)
-        
         self.buttonBar.add_widget(self.button_EncryptFolder)
         self.buttonBar.add_widget(self.button_DecryptFolder)
         self.buttonBar.add_widget(self.button_EncryptFile)

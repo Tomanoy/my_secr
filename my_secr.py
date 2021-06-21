@@ -4,6 +4,11 @@ import hashlib
 import struct
 import random
 
+import sys
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+    
 '''
 ================tail struct==============
 version                   4B        V
@@ -67,15 +72,15 @@ def SECR_Encrypt(filePath, password, newName = '', version = default_version, en
         newFilePath = os.path.join(fileDir, newName + '.secr')
     if os.path.isfile(newFilePath) or os.path.isdir(newFilePath):
         print('ERROR: file exists!(%s)' % newFilePath)
-        return
+        return False
 
     if support_version[version]:
         en = support_enlib[version]
     else:
         print('ERROR: unsupported version!(V%d)' % version)
 
+    
     secrFile = open(filePath, 'rb+')
-
     #version
     F_V = struct.pack('I', version)
     
@@ -129,6 +134,7 @@ def SECR_Encrypt(filePath, password, newName = '', version = default_version, en
     secrFile.close()
     os.rename(filePath, newFilePath)
     print('INFO: encrypt sucessfully!(%s)' % filePath)
+    return  True
 
 def SECR_GetInfo(filePath):
     secrFile = open(filePath, 'rb')
