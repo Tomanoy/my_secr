@@ -1,5 +1,5 @@
 /storage/emulated/0/qpython/testfile
-/storage/emulated/0/Download/
+/storage/emulated/0/Download
 /storage/emulated/0/BaiduNetdisk
 C:/
 D:/

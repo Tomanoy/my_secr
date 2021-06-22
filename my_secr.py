@@ -71,14 +71,16 @@ def SECR_Encrypt(filePath, password, newName = '', version = default_version, en
     else:
         newFilePath = os.path.join(fileDir, newName + '.secr')
     if os.path.isfile(newFilePath) or os.path.isdir(newFilePath):
-        print('ERROR: file exists!(%s)' % newFilePath)
-        return False
+        msg = 'ERROR: file exists!\n(%s)' % newFilePath
+        print(msg)
+        return (False, msg)
 
     if support_version[version]:
         en = support_enlib[version]
     else:
-        print('ERROR: unsupported version!(V%d)' % version)
-
+        msg = 'ERROR: unsupported version!\n(V%d)' % version
+        print(msg)
+        return (False, msg)
     
     secrFile = open(filePath, 'rb+')
     #version
@@ -133,8 +135,9 @@ def SECR_Encrypt(filePath, password, newName = '', version = default_version, en
     secrFile.write(F_Tail)
     secrFile.close()
     os.rename(filePath, newFilePath)
-    print('INFO: encrypt sucessfully!(%s)' % filePath)
-    return  True
+    msg = 'INFO: encrypt sucessfully!\n(%s)' % filePath
+    print(msg)
+    return (True, msg)
 
 def SECR_GetInfo(filePath):
     secrFile = open(filePath, 'rb')
@@ -142,7 +145,7 @@ def SECR_GetInfo(filePath):
     mark, TTL = struct.unpack('=4sI', secrFile.read(8))
     
     if mark != b'SECR':
-        print('ERROR: not a SECR file!(%s)' % filePath)
+        print('ERROR: not a SECR file!\n(%s)' % filePath)
         secrFile.close()
         return None
     
@@ -186,12 +189,14 @@ def SECR_Decrypt(filePath, password):
         return False
     
     if not support_version[secrInfo['version']]:
-        print('ERROR: unsupported version!(%s, V%d)' % (filePath, secrInfo['version']))
-        return False
+        msg = 'ERROR: unsupported version!\n(%s, V%d)' % (filePath, secrInfo['version'])
+        print(msg)
+        return (False, msg)
     
     if password_md5 != secrInfo['PMD5']:
-        print('ERROR: worng password!(%s)' % filePath)
-        return False
+        msg = 'ERROR: worng password!\n(%s)' % filePath
+        print(msg)
+        return (False, msg)
     
     en = support_enlib[secrInfo['version']]
     secrFile = open(filePath, 'rb+')
@@ -206,8 +211,9 @@ def SECR_Decrypt(filePath, password):
     newFilePath = os.path.join(fileDir, secrInfo['OFN'])
     os.rename(filePath, newFilePath)
     
-    print('INFO: decrypt sucessfully!(%s)' % filePath)
-    return True
+    msg = 'INFO: decrypt sucessfully!\n(%s)' % filePath
+    print(msg)
+    return (True, msg)
     
 if __name__ == '__main__':
     #SECR_Encrypt('test - 副本.pdf', 'wasd', 'newserc', version = 0)

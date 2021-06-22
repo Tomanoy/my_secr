@@ -7,11 +7,19 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.uix.checkbox import CheckBox
 from kivy.config import Config
+from kivy.graphics import Color, Rectangle
 
+from kivy.core.text import Label as CoreLabel
+
+from text_language import text_zh as textData
+
+import time
 import os
+import struct
+import threading
+
 import my_secr
 
-import struct
 
 font_size = 12
 defaultFont = 'msyh'
@@ -77,27 +85,25 @@ class AppWindow(GridLayout):
     def __init__(self, **kwargs):
         super(AppWindow, self).__init__(**kwargs)
         self.cols = 1
-        self.titelLabel = Label(text='Titel', font_name=defaultFont)
-
-
-        #text_size: None,self.height[1] #  Set the text wrap Box height
-        #size_hint_x:None
-        #width: self.texture_size[0]
-        #print(self.titelLabel.size_hint_x)
-        self.size_width = Config.get('graphics', 'width')
-        self.size_height = Config.get('graphics', 'height')
+        self.size_width = int(Config.get('graphics', 'width'))
+        self.size_height = int(Config.get('graphics', 'height'))
         
-        self.add_widget(self.titelLabel)
+
+        
         self.listLines = 16
         self.listLabels = []
         self.selected = -1
         self.page = 0
 
         self.folderOperationEnable = False
+
+        self.msgs = []
     
-        bb = b''
-        for i in range(102400):
-            bb += struct.pack('=B', (99 % 256))
+        self.titelLabel = Label(text='Titel',
+                                font_name=defaultFont,
+                                font_size="%dsp" % font_size,
+                                size_hint_min_y = 1.5 * self.size_height / (self.listLines + 5))
+        self.add_widget(self.titelLabel)
             
         for i in range(self.listLines):
             tempLabel = InfoLabel(text='File Name', font_name=defaultFont)
@@ -106,8 +112,9 @@ class AppWindow(GridLayout):
             self.add_widget(tempLabel)
         
         self.pageButtonBar = GridLayout()
-        self.pageButtonBar.cols = 2
-        self.button_PageUp      = Button(text="Page Up",
+        self.pageButtonBar.rows = 1
+        self.button_PageUp      = Button(text=textData['Page Up'],
+                                         font_name=defaultFont,
                                          font_size="%dsp" % font_size,
                                          background_color=BUTTON_COLOR_ENABLE,
                                          color=BUTTON_COLOR_ENABLE2,
@@ -115,7 +122,17 @@ class AppWindow(GridLayout):
                                          pos=(500, 500)) 
         self.button_PageUp.bind(on_press=self.PageUp)
         
-        self.button_PageDown    = Button(text="Page Down",
+        self.button_PageBack    = Button(text=textData['Back'],
+                                         font_name=defaultFont,
+                                         font_size="%dsp" % font_size,
+                                         background_color=BUTTON_COLOR_ENABLE,
+                                         color=BUTTON_COLOR_ENABLE2,
+                                         size_hint=(.3, .3),
+                                         pos=(500, 500)) 
+        self.button_PageBack.bind(on_press=self.PageBack)
+        
+        self.button_PageDown    = Button(text=textData['Page Down'],
+                                         font_name=defaultFont,
                                          font_size="%dsp" % font_size,
                                          background_color=BUTTON_COLOR_ENABLE,
                                          color=BUTTON_COLOR_ENABLE2,
@@ -124,11 +141,14 @@ class AppWindow(GridLayout):
         self.button_PageDown.bind(on_press=self.PageDown)
         
         self.pageButtonBar.add_widget(self.button_PageUp)
+        self.pageButtonBar.add_widget(self.button_PageBack)
         self.pageButtonBar.add_widget(self.button_PageDown)
         self.add_widget(self.pageButtonBar)
 
         self.passwordBar = GridLayout(rows = 1)
-        self.passwordLabel = Label(text='Password:', size_hint_max_x = 70, font_name=defaultFont)
+        self.passwordLabel = Label(text=textData['Password'],
+                                   size_hint_max_x = 70,
+                                   font_name=defaultFont)
         self.password = TextInput(multiline=False)
         self.passwordBar.add_widget(self.passwordLabel)
         self.passwordBar.add_widget(self.password)
@@ -136,7 +156,8 @@ class AppWindow(GridLayout):
         
         #print(dir(self.password), self.password.width)
         
-        self.label_UnlockCheck = Label(text='Unlock')
+        self.label_UnlockCheck = Label(text=textData['Unlock'],
+                                       font_name=defaultFont)
         self.check_EncryptFolder = CheckBox(color=[1,1,1,1])
         self.check_EncryptFolder.bind(active=self.CheckboxActive)
         self.checkBar = GridLayout(rows = 1)
@@ -147,32 +168,36 @@ class AppWindow(GridLayout):
         self.buttonBar = GridLayout(rows = 1)      
 
 
-        self.button_EncryptFolder = Button(text="Encrypt Folder",
+        self.button_EncryptFolder = Button(text=textData['Encrypt Folder'],
                                          font_size="%dsp" % font_size,
+                                         font_name=defaultFont,
                                          background_color=BUTTON_COLOR_DISABLE,
                                          color=BUTTON_COLOR_DISABLE,
                                          size_hint=(.3, .3),
                                          pos=(500, 500)) 
         self.button_EncryptFolder.bind(on_press=self.EncryptFolder)
         
-        self.button_DecryptFolder = Button(text="Decrypt Folder",
+        self.button_DecryptFolder = Button(text=textData['Decrypt Folder'],
                                          font_size="%dsp" % font_size,
+                                         font_name=defaultFont,
                                          background_color=BUTTON_COLOR_DISABLE,
                                          color=BUTTON_COLOR_DISABLE,
                                          size_hint=(.3, .3),
                                          pos=(500, 500)) 
         self.button_DecryptFolder.bind(on_press=self.DecryptFolder)
 
-        self.button_EncryptFile = Button(text="Encrypt File",
+        self.button_EncryptFile = Button(text=textData['Encrypt File'],
                                          font_size="%dsp" % font_size,
+                                         font_name=defaultFont,
                                          background_color=BUTTON_COLOR_ENABLE,
                                          color=BUTTON_COLOR_ENABLE2,
                                          size_hint=(.3, .3),
                                          pos=(500, 500)) 
         self.button_EncryptFile.bind(on_press=self.EncryptFile)
         
-        self.button_DecryptFile = Button(text="Decrypt File",
+        self.button_DecryptFile = Button(text=textData['Decrypt File'],
                                          font_size="%dsp" % font_size,
+                                         font_name=defaultFont,
                                          background_color=BUTTON_COLOR_ENABLE,
                                          color=BUTTON_COLOR_ENABLE2,
                                          size_hint=(.3, .3),
@@ -183,13 +208,57 @@ class AppWindow(GridLayout):
         self.buttonBar.add_widget(self.button_EncryptFile)
         self.buttonBar.add_widget(self.button_DecryptFile)
         self.add_widget(self.buttonBar)
-
-        self.check_EncryptFolder.size = [10, 10]
+        
         self.InitPage()
-        #self.listLabels[1].SetBackgroundColor(BACKGROUND_COLOR_FOLDER)
-        #self.listLabels[2].SetBackgroundColor(BACKGROUND_COLOR_FILE)
-        #self.listLabels[3].SetBackgroundColor(BACKGROUND_COLOR_NOTHING)
-        #self.listLabels[4].SetBackgroundColor(BACKGROUND_COLOR_NOTHING)
+        
+        self.thread = threading.Thread(target = self.ShowMsg, args=())
+        self.thread.setDaemon(True)
+        self.thread.start()  #打开收数据的线程
+        
+    def ShowMsg(self):
+        '''
+        label = CoreLabel(text='', font_size=12, font_name=defaultFont)
+        label.refresh()
+        text = label.texture
+        self.canvas.add(Color(1.0, 1.0, 1.0, 0.5))
+        msgBackground = Rectangle(size=[0, 0], color=[1,0,1,1])
+        msgTextRect   = Rectangle(size=[0, 0], color=[1,0,1,1])
+        
+        self.canvas.add(msgBackground)
+        self.canvas.add(msgTextRect)
+        
+        while True:
+            if len(self.msgs) > 5:
+                self.msgs = self.msgs[-5:]
+            if len(self.msgs) > 0:
+                label.text = self.msgs[0]
+                del self.msgs[0]
+                label.refresh()
+                text = label.texture
+                msgTextRect.texture = text
+                pos = [self.size_width / 2 - text.size[0] / 2, self.height / (self.listLines + 5) * 3.5]
+                msgBackground.size = text.size
+                msgTextRect.size = text.size
+                msgBackground.pos = pos
+                msgTextRect.pos = pos
+                time.sleep(2)
+            else:
+                msgBackground.size = [0, 0]
+                msgTextRect.size = [0, 0]
+                time.sleep(0.5)
+        '''
+        while True:
+            if len(self.msgs) > 2:
+                self.msgs = self.msgs[-2:]
+            if len(self.msgs) > 0:
+                self.titelLabel.text = self.msgs[0]
+                self.titelLabel.color = [1,0,0,1]
+                del self.msgs[0]
+                time.sleep(2)
+            else:
+                self.titelLabel.text = self.currentPath
+                self.titelLabel.color = [1,1,1,1]
+                time.sleep(0.5)
 
     def ArrangeDir(self, currentPath, listDir):
         if currentPath == '$Home:':
@@ -223,10 +292,10 @@ class AppWindow(GridLayout):
         displayNum = len(self.arrangedDirList) - self.page * self.listLines
         if displayNum > self.listLines:
             displayNum = self.listLines
-
+        
         for i in range(self.listLines):
             self.listLabels[i].SetNothing()
-            
+        
         for i in range(displayNum):
             fileData = self.arrangedDirList[displayStart + i]
             if fileData[0] == TYPE_FOLDER:
@@ -255,8 +324,16 @@ class AppWindow(GridLayout):
         self.OpenFolderByPath(choosePath)
 
     def OpenFolderByPath(self, folderPath):
+        try:
+            listDir = os.listdir(folderPath)
+        except:
+            msg = 'ERROR: can not open folder!\n(%s)' % folderPath
+            print(msg)
+            self.msgs.append(msg)
+            self.InitPage()
+            return
+        
         self.currentPath = folderPath
-        listDir = os.listdir(self.currentPath)
         listDir.sort()
         listDir = ['..'] + listDir
         self.ArrangeDir(self.currentPath, listDir)
@@ -272,7 +349,15 @@ class AppWindow(GridLayout):
         if self.page > 0:
             self.page -= 1
             self.DisplayList()
+            
+    def PageBack(self, btn):
+        p1, p2 = os.path.split(self.currentPath)
+        if p1 == '' or p2 == '':
+            self.InitPage()
+        else:
+            self.OpenFolderByPath(p1)
 
+        
     def PageDown(self, btn):
         if self.page < int(len(self.arrangedDirList) / self.listLines):
             self.page += 1
@@ -290,6 +375,7 @@ class AppWindow(GridLayout):
             return
         
         if '.serchome' in os.listdir(self.currentPath):
+            self.msgs.append('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
             print('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
             return
         
@@ -299,7 +385,9 @@ class AppWindow(GridLayout):
             if filePath[-5:] != '.secr' and os.path.isfile(filePath):
                 while os.path.isfile(os.path.join(self.currentPath, 'fil_%d.secr' % counter)):
                     counter += 1
-                my_secr.SECR_Encrypt(filePath, password, newName = 'fil_%d' % counter, version = 0, encryptLen = 102400)
+                result, msg = my_secr.SECR_Encrypt(filePath, password, newName = 'fil_%d' % counter, version = 0, encryptLen = 102400)
+                if not result:
+                    self.msgs.append(msg)
 
         self.OpenFolderByPath(self.currentPath)
         self.check_EncryptFolder.active = False
@@ -314,8 +402,9 @@ class AppWindow(GridLayout):
             return
         for fileName in os.listdir(self.currentPath):
             if fileName[-5:] == '.secr':
-                my_secr.SECR_Decrypt(os.path.join(self.currentPath, fileName), password)        
-
+                result, msg = my_secr.SECR_Decrypt(os.path.join(self.currentPath, fileName), password)        
+                if not result:
+                    self.msgs.append(msg)
         self.OpenFolderByPath(self.currentPath)
         self.check_EncryptFolder.active = False
         #self.CheckboxActive(None, False)
@@ -328,7 +417,8 @@ class AppWindow(GridLayout):
             return
         
         if '.serchome' in os.listdir(self.currentPath):
-            print('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
+            self.msgs.append('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
+            #print('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
             return
         
         filePath = os.path.join(self.currentPath, self.arrangedDirList[self.selected][1])
@@ -344,8 +434,9 @@ class AppWindow(GridLayout):
             counter += 1
             
         filePath = filePath.replace('\\', '/')
-        my_secr.SECR_Encrypt(filePath, password, newName = 'fil_%d' % counter, version = 0, encryptLen = 102400)     
-
+        result, msg = my_secr.SECR_Encrypt(filePath, password, newName = 'fil_%d' % counter, version = 0, encryptLen = 102400)     
+        if not result:
+            self.msgs.append(msg)
         self.OpenFolderByPath(self.currentPath)
 
     def DecryptFile(self, btn):
@@ -361,8 +452,9 @@ class AppWindow(GridLayout):
         if filePath[-5:] != '.secr' and os.path.isfile(filePath):
             return
         filePath = filePath.replace('\\', '/')
-        my_secr.SECR_Decrypt(filePath, password) 
-
+        result, msg = my_secr.SECR_Decrypt(filePath, password) 
+        if not result:
+            self.msgs.append(msg)
         self.OpenFolderByPath(self.currentPath)
 
     def CheckboxActive(self, checkbox, value):
