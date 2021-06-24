@@ -36,6 +36,10 @@ BUTTON_COLOR_ENABLE  = [0.0, 0.5, 0.5, 1]
 BUTTON_COLOR_ENABLE2 = [0.5, 0.5, 1.0, 1]
 BUTTON_COLOR_DISABLE = [0.3, 0.3, 0.3, 1]
 
+
+STATE_MSG  = 1
+STATE_PATH = 2
+
 class InfoLabel(Button):
     def on_release(self):
         if self.fileIndex < 0:
@@ -87,8 +91,6 @@ class AppWindow(GridLayout):
         self.cols = 1
         self.size_width = int(Config.get('graphics', 'width'))
         self.size_height = int(Config.get('graphics', 'height'))
-        
-
         
         self.listLines = 16
         self.listLabels = []
@@ -214,51 +216,39 @@ class AppWindow(GridLayout):
         self.thread = threading.Thread(target = self.ShowMsg, args=())
         self.thread.setDaemon(True)
         self.thread.start()  #打开收数据的线程
-        
+
+
+    def AddMsg(self, msgText = '', msgTime = 2.0, msgColor = [1, 1, 1, 1]):
+        self.msgs.append([msgText, msgTime, msgColor])
+
+    
     def ShowMsg(self):
-        '''
-        label = CoreLabel(text='', font_size=12, font_name=defaultFont)
-        label.refresh()
-        text = label.texture
-        self.canvas.add(Color(1.0, 1.0, 1.0, 0.5))
-        msgBackground = Rectangle(size=[0, 0], color=[1,0,1,1])
-        msgTextRect   = Rectangle(size=[0, 0], color=[1,0,1,1])
-        
-        self.canvas.add(msgBackground)
-        self.canvas.add(msgTextRect)
+
+        msgTime  = 0
+        msgTimeStep = 0.1
+        msgTimeCount= 0
         
         while True:
-            if len(self.msgs) > 5:
-                self.msgs = self.msgs[-5:]
-            if len(self.msgs) > 0:
-                label.text = self.msgs[0]
-                del self.msgs[0]
-                label.refresh()
-                text = label.texture
-                msgTextRect.texture = text
-                pos = [self.size_width / 2 - text.size[0] / 2, self.height / (self.listLines + 5) * 3.5]
-                msgBackground.size = text.size
-                msgTextRect.size = text.size
-                msgBackground.pos = pos
-                msgTextRect.pos = pos
-                time.sleep(2)
+            time.sleep(msgTimeStep)
+            if msgTimeCount == 0:
+                if len(self.msgs) != 0:
+                    self.msgState = STATE_MSG
+                    if len(self.msgs) > 3:
+                        self.msgs = self.msgs[-3:]
+                    msgText, msgTime, msgColor = self.msgs[0]
+                    del self.msgs[0]
+                    print(msgText)
+                    if msgTime > 2.0:
+                        msgTime = 2.0
+                    msgTimeCount = int(msgTime / msgTimeStep)
+                    self.titelLabel.text = msgText
+                    self.titelLabel.color = msgColor
+                elif self.msgState == STATE_MSG:
+                    self.msgState = STATE_PATH
+                    self.titelLabel.text = self.currentPath
+                    self.titelLabel.color = [1,1,1,1]
             else:
-                msgBackground.size = [0, 0]
-                msgTextRect.size = [0, 0]
-                time.sleep(0.5)
-        '''
-        while True:
-            if len(self.msgs) > 2:
-                self.msgs = self.msgs[-2:]
-            if len(self.msgs) > 0:
-                self.titelLabel.text = self.msgs[0]
-                self.titelLabel.color = [1,0,0,1]
-                del self.msgs[0]
-                time.sleep(2)
-            else:
-                self.titelLabel.text = self.currentPath
-                self.titelLabel.color = [1,1,1,1]
-                time.sleep(0.5)
+                msgTimeCount -= 1
 
     def ArrangeDir(self, currentPath, listDir):
         if currentPath == '$Home:':
@@ -286,7 +276,8 @@ class AppWindow(GridLayout):
         return self.arrangedDirList
         
     def DisplayList(self):
-        self.titelLabel.text = self.currentPath
+        if self.msgState == STATE_PATH:
+            self.titelLabel.text = self.currentPath
         self.selected = -1
         displayStart = self.page * self.listLines
         displayNum = len(self.arrangedDirList) - self.page * self.listLines
@@ -313,6 +304,7 @@ class AppWindow(GridLayout):
             f.close()
         self.ArrangeDir(self.currentPath, listDir)
         self.page = 0
+        self.msgState = STATE_PATH
         self.DisplayList()
 
     def OpenFolderByIndex(self, fileIndex):
@@ -328,8 +320,7 @@ class AppWindow(GridLayout):
             listDir = os.listdir(folderPath)
         except:
             msg = 'ERROR: can not open folder!\n(%s)' % folderPath
-            print(msg)
-            self.msgs.append(msg)
+            self.msgs.append([msg, 2.0, [1, 0, 0, 1]])
             self.InitPage()
             return
         
@@ -375,20 +366,25 @@ class AppWindow(GridLayout):
             return
         
         if '.serchome' in os.listdir(self.currentPath):
-            self.msgs.append('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
-            print('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
+            msg = 'ERROR: DO NOT ENCRYPT THIS SCRIPTS!'
+            self.msgs.append([msg, 2.0, [1, 0, 0, 1]])
             return
         
-        
+        msg = 'INFO: Encrypting folder.\n(%s)' % self.currentPath
+        self.msgs.append([msg, 2.0, [0, 1, 0, 1]])
+        num = 0
         for fileName in os.listdir(self.currentPath):
             filePath = os.path.join(self.currentPath, fileName)
             if filePath[-5:] != '.secr' and os.path.isfile(filePath):
                 while os.path.isfile(os.path.join(self.currentPath, 'fil_%d.secr' % counter)):
                     counter += 1
                 result, msg = my_secr.SECR_Encrypt(filePath, password, newName = 'fil_%d' % counter, version = 0, encryptLen = 102400)
-                if not result:
-                    self.msgs.append(msg)
-
+                if result:
+                    num += 1
+                else:
+                    self.msgs.append([msg, 2.0, [1, 0, 0, 1]])
+        msg = 'INFO: %d files are encrypted.\n(%s)' % (num, self.currentPath)
+        self.msgs.append([msg, 2.0, [0, 1, 0, 1]])
         self.OpenFolderByPath(self.currentPath)
         self.check_EncryptFolder.active = False
         #self.CheckboxActive(None, False)
@@ -400,16 +396,18 @@ class AppWindow(GridLayout):
         counter = 1
         if not os.path.isdir(self.currentPath):
             return
+        num = 0
         for fileName in os.listdir(self.currentPath):
             if fileName[-5:] == '.secr':
                 result, msg = my_secr.SECR_Decrypt(os.path.join(self.currentPath, fileName), password)        
-                if not result:
-                    self.msgs.append(msg)
+                if result:
+                    num += 1
+                else:
+                    self.msgs.append([msg, 2.0, [1, 0, 0, 1]])
+        msg = 'INFO: %d files are decrypted.\n(%s)' % (num, self.currentPath)
+        self.msgs.append([msg, 2.0, [0, 1, 0, 1]])
         self.OpenFolderByPath(self.currentPath)
         self.check_EncryptFolder.active = False
-        #self.CheckboxActive(None, False)
-
-
 
     def EncryptFile(self, btn):
         password = self.password.text
@@ -417,8 +415,8 @@ class AppWindow(GridLayout):
             return
         
         if '.serchome' in os.listdir(self.currentPath):
-            self.msgs.append('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
-            #print('ERROR: DO NOT ENCRYPT THIS SCRIPTS!')
+            msg = 'ERROR: DO NOT ENCRYPT THIS SCRIPTS!'
+            self.msgs.append([msg, 2.0, [1, 0, 0, 1]])
             return
         
         filePath = os.path.join(self.currentPath, self.arrangedDirList[self.selected][1])
@@ -435,8 +433,11 @@ class AppWindow(GridLayout):
             
         filePath = filePath.replace('\\', '/')
         result, msg = my_secr.SECR_Encrypt(filePath, password, newName = 'fil_%d' % counter, version = 0, encryptLen = 102400)     
-        if not result:
-            self.msgs.append(msg)
+        if result:
+            msg = 'INFO: file is encrypted.\n(%s)' % filePath
+            self.msgs.append([msg, 2.0, [0, 1, 0, 1]])
+        else:
+            self.msgs.append([msg, 2, [1, 0, 0, 1]])
         self.OpenFolderByPath(self.currentPath)
 
     def DecryptFile(self, btn):
@@ -452,9 +453,12 @@ class AppWindow(GridLayout):
         if filePath[-5:] != '.secr' and os.path.isfile(filePath):
             return
         filePath = filePath.replace('\\', '/')
-        result, msg = my_secr.SECR_Decrypt(filePath, password) 
-        if not result:
-            self.msgs.append(msg)
+        result, msg = my_secr.SECR_Decrypt(filePath, password)
+        if result:
+            msg = 'INFO: file is decrypted.\n(%s)' % filePath
+            self.msgs.append([msg, 2.0, [0, 1, 0, 1]])
+        else:
+            self.msgs.append([msg, 2, [1, 0, 0, 1]])
         self.OpenFolderByPath(self.currentPath)
 
     def CheckboxActive(self, checkbox, value):
