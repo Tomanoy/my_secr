@@ -149,7 +149,6 @@ class AppWindow(GridLayout):
 
         self.passwordBar = GridLayout(rows = 1)
         self.passwordLabel = Label(text=textData['Password'],
-                                   size_hint_max_x = 70,
                                    font_name=defaultFont)
         self.password = TextInput(multiline=False)
         self.passwordBar.add_widget(self.passwordLabel)
@@ -217,10 +216,8 @@ class AppWindow(GridLayout):
         self.thread.setDaemon(True)
         self.thread.start()  #打开收数据的线程
 
-
     def AddMsg(self, msgText = '', msgTime = 2.0, msgColor = [1, 1, 1, 1]):
         self.msgs.append([msgText, msgTime, msgColor])
-
     
     def ShowMsg(self):
 
@@ -278,6 +275,7 @@ class AppWindow(GridLayout):
     def DisplayList(self):
         if self.msgState == STATE_PATH:
             self.titelLabel.text = self.currentPath
+            self.titelLabel.color = [1,1,1,1]
         self.selected = -1
         displayStart = self.page * self.listLines
         displayNum = len(self.arrangedDirList) - self.page * self.listLines
