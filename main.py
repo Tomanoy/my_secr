@@ -396,6 +396,9 @@ class AppWindow(GridLayout):
         counter = 1
         if not os.path.isdir(self.currentPath):
             return
+        
+        msg = 'INFO: Decrypting folder.\n(%s)' % self.currentPath
+        self.msgs.append([msg, 2.0, [0, 1, 0, 1]])
         num = 0
         for fileName in os.listdir(self.currentPath):
             if fileName[-5:] == '.secr':
