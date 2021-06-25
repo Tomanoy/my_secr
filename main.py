@@ -11,7 +11,7 @@ from kivy.graphics import Color, Rectangle
 
 from kivy.core.text import Label as CoreLabel
 
-from text_language import text_zh as textData
+from text_language import text_en as textData
 
 import time
 import os
